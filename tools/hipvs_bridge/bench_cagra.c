@@ -24,9 +24,15 @@
 
 static double now_seconds(void)
 {
+  /* Same portability reasoning as the bridge: timespec_get is C11, clock() is
+   * C89, and clock_gettime is POSIX and disappears under a strict -std. */
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
   struct timespec ts;
-  clock_gettime(CLOCK_MONOTONIC, &ts);
+  if (timespec_get(&ts, TIME_UTC) != TIME_UTC) return 0.0;
   return (double)ts.tv_sec + (double)ts.tv_nsec * 1e-9;
+#else
+  return (double)clock() / (double)CLOCKS_PER_SEC;
+#endif
 }
 
 /* Deterministic, allocation-free PRNG: identical data across runs and configs is

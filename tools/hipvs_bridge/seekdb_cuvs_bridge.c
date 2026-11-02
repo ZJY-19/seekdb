@@ -14,9 +14,19 @@
 
 static double sk_now_seconds(void)
 {
+  /* Timing is diagnostic only (OB_CAGRA_TIMING), so portability beats precision
+   * here. timespec_get is C11; clock() is C89. Preferring the former and falling
+   * back to the latter keeps the bridge compiling under any -std the caller
+   * happens to pass. clock_gettime is deliberately avoided: it is POSIX, and
+   * under a strict -std=cNN the glibc prototypes are hidden, which turns a
+   * diagnostic into a build failure. */
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
   struct timespec ts;
-  if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) return 0.0;
+  if (timespec_get(&ts, TIME_UTC) != TIME_UTC) return 0.0;
   return (double)ts.tv_sec + (double)ts.tv_nsec * 1e-9;
+#else
+  return (double)clock() / (double)CLOCKS_PER_SEC;
+#endif
 }
 
 typedef struct {
